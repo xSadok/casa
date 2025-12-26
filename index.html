@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Despensa 3.3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
+        .card-shadow { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .shopping-mode-active { background-color: #fff7ed; } 
+        
+        /* Remove setas do input number */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] { -moz-appearance: textfield; }
+
+        /* Animações */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
+        
+        .badge-pulse { animation: pulse-yellow 2s infinite; }
+        @keyframes pulse-yellow {
+            0% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(234, 179, 8, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+        }
+    </style>
+</head>
+<body class="pb-28 transition-colors duration-300" id="main-body">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-20">
+        <div class="max-w-md mx-auto px-4 pt-4 pb-2">
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800" id="app-title">Minha Casa</h1>
+                    <p class="text-xs text-gray-500" id="stats-display">Carregando...</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="toggleShoppingMode()" id="shop-btn" class="p-2 rounded-full bg-gray-100 text-gray-600 transition hover:bg-orange-100 hover:text-orange-600 relative" title="Modo Mercado">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                    </button>
+                    <button onclick="toggleSettings()" class="p-2 rounded-full bg-gray-100 text-gray-600 transition hover:bg-blue-100 hover:text-blue-600" title="Configurações">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Settings Menu -->
+            <div id="settings-panel" class="hidden bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-lg text-sm transition-all duration-200 ease-in-out">
+                <p class="font-bold text-gray-700 mb-2">Backup de Dados</p>
+                <div class="flex gap-2">
+                    <button onclick="exportData()" class="flex-1 bg-blue-50 text-blue-700 px-3 py-2 rounded-lg font-medium hover:bg-blue-100 transition">⬇️ Baixar</button>
+                    <button onclick="document.getElementById('file-input').click()" class="flex-1 bg-green-50 text-green-700 px-3 py-2 rounded-lg font-medium hover:bg-green-100 transition">⬆️ Restaurar</button>
+                    <input type="file" id="file-input" class="hidden" onchange="importData(this)">
+                </div>
+                <div class="mt-3 pt-3 border-t">
+                    <p class="font-bold text-gray-700 mb-2">Categorias</p>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-cat-input" placeholder="Nova..." class="flex-1 border rounded px-2 py-1 focus:ring-2 focus:ring-emerald-500 outline-none">
+                        <button onclick="addCustomCategory()" class="bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-700 transition">Add</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="relative">
+                <input type="text" id="search-input" oninput="renderItems()" placeholder="Buscar item..." class="w-full pl-9 pr-4 py-2.5 bg-gray-100 border-transparent focus:bg-white focus:ring-2 focus:ring-emerald-500 rounded-xl text-sm transition-all outline-none">
+                <svg class="absolute left-3 top-3 text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </div>
+            
+            <div class="flex gap-2 mt-3 overflow-x-auto no-scrollbar pb-1" id="category-filters"></div>
+        </div>
+    </header>
+
+    <!-- Shopping Banner -->
+    <div id="shopping-banner" class="hidden bg-orange-100 px-4 py-3 text-center text-sm font-bold text-orange-800 border-b border-orange-200 sticky top-[135px] z-10 shadow-sm flex justify-between items-center">
+        <span>🛍️ MODO MERCADO</span>
+        <button onclick="toggleShoppingMode()" class="text-xs bg-white/50 px-2 py-1 rounded hover:bg-white/80">Sair</button>
+    </div>
+
+    <main class="max-w-md mx-auto px-4 py-2" id="inventory-list"></main>
+
+    <!-- FAB Add Button -->
+    <button onclick="openAddModal()" id="add-btn" class="fixed bottom-6 right-6 bg-emerald-600 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:bg-emerald-700 transition-transform active:scale-90 z-20 focus:outline-none focus:ring-4 focus:ring-emerald-300">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </button>
+
+    <!-- Modal Form (Add/Edit) -->
+    <div id="item-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-end sm:items-center justify-center sm:px-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-slide-up transform transition-transform">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800" id="modal-title">Novo Item</h2>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+            </div>
+            
+            <form onsubmit="handleFormSubmit(event)">
+                <input type="hidden" id="edit-id">
+                
+                <div class="mb-4 relative">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nome</label>
+                    <input type="text" id="item-name" list="suggestions" required class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none transition-colors" placeholder="Ex: Arroz, Leite..." autocomplete="off">
+                    <datalist id="suggestions"></datalist>
+                </div>
+                
+                <!-- Nova Grid de 3 Colunas -->
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Qtd Atual</label>
+                        <input type="number" id="item-qty" value="1" min="0" step="any" required class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Unidade</label>
+                        <select id="item-unit" class="w-full px-2 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-colors appearance-none text-sm">
+                            <option value="un">un</option>
+                            <option value="kg">kg</option>
+                            <option value="g">g</option>
+                            <option value="L">L</option>
+                            <option value="ml">ml</option>
+                            <option value="pct">pct</option>
+                            <option value="cx">cx</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-emerald-600 uppercase mb-1">Mínimo</label>
+                        <input type="number" id="item-min" value="0" min="0" step="any" class="w-full px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-colors" placeholder="0">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Categoria</label>
+                        <select id="item-category" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-colors appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-no-repeat bg-[right_1rem_center] text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Validade</label>
+                        <input type="date" id="item-expiry" class="w-full px-1 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm transition-colors text-gray-600">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-3 text-white font-bold bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-xl text-sm font-medium opacity-0 transition-opacity z-50 pointer-events-none whitespace-nowrap"></div>
+
+    <script>
+        // --- CONSTANTS & STATE ---
+        const STORAGE_KEY_ITEMS = 'inventory_v3_data';
+        const STORAGE_KEY_CATS = 'inventory_v3_cats';
+        
+        const initialMockData = [
+            {id: 1715620000001, name: "Leite Integral", qty: 2, minQty: 3, unit: "L", category: "Geladeira", expiry: ""},
+            {id: 1715620000002, name: "Arroz", qty: 1, minQty: 0, unit: "pct", category: "Despensa", expiry: ""},
+            {id: 1715620000003, name: "Café", qty: 0, minQty: 1, unit: "kg", category: "Despensa", expiry: ""}
+        ];
+
+        let items = JSON.parse(localStorage.getItem(STORAGE_KEY_ITEMS)) || initialMockData;
+        let categories = JSON.parse(localStorage.getItem(STORAGE_KEY_CATS)) || ['Despensa', 'Geladeira', 'Limpeza', 'Higiene', 'Outros'];
+        let activeCategory = 'Todos';
+        let shoppingMode = false;
+        
+        let shoppingCart = new Map(); 
+
+        // --- INIT ---
+        function init() {
+            items.forEach(item => {
+                if (!item.unit) item.unit = 'un';
+                if (item.minQty === undefined) item.minQty = 0;
+            });
+            
+            if (!localStorage.getItem(STORAGE_KEY_ITEMS)) save();
+            renderCategories();
+            renderCategorySelect();
+            updateSuggestions();
+            renderItems();
+            updateStats();
+        }
+
+        function save() {
+            localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(items));
+            localStorage.setItem(STORAGE_KEY_CATS, JSON.stringify(categories));
+            updateSuggestions();
+            updateStats();
+        }
+
+        // Helper para evitar erros de ponto flutuante
+        function safeMath(val) {
+            return parseFloat(val.toFixed(3));
+        }
+
+        // --- CORE LOGIC ---
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const editId = document.getElementById('edit-id').value;
+            const name = document.getElementById('item-name').value.trim();
+            const qty = parseFloat(document.getElementById('item-qty').value);
+            const minQty = parseFloat(document.getElementById('item-min').value) || 0;
+            const unit = document.getElementById('item-unit').value;
+            const category = document.getElementById('item-category').value;
+            const expiry = document.getElementById('item-expiry').value;
+
+            if (!name) return;
+
+            if (editId) {
+                const item = items.find(i => i.id == editId);
+                if (item) {
+                    item.name = name;
+                    item.qty = safeMath(qty);
+                    item.minQty = safeMath(minQty);
+                    item.unit = unit;
+                    item.category = category;
+                    item.expiry = expiry;
+                    showToast('Item atualizado!');
+                }
+            } else {
+                const existing = items.find(i => i.name.toLowerCase() === name.toLowerCase());
+                if (existing) {
+                    if(confirm(`${name} já existe. Atualizar dados?`)) {
+                        existing.qty = safeMath(existing.qty + qty);
+                        existing.minQty = safeMath(minQty); // Atualiza o mínimo
+                        existing.category = category;
+                        existing.unit = unit; 
+                        existing.expiry = expiry || existing.expiry;
+                        showToast(`Atualizado!`);
+                    }
+                } else {
+                    items.unshift({
+                        id: Date.now(),
+                        name: name.charAt(0).toUpperCase() + name.slice(1),
+                        qty: safeMath(qty),
+                        minQty: safeMath(minQty),
+                        unit, category, expiry
+                    });
+                    showToast('Item adicionado!');
+                }
+            }
+            
+            save();
+            closeModal();
+            renderItems();
+        }
+
+        function updateQuantity(id, change) {
+            const item = items.find(i => i.id === id);
+            if (item) {
+                const newVal = safeMath(item.qty + change);
+                if (newVal < 0) return;
+                item.qty = newVal;
+                save();
+                renderItems();
+            }
+        }
+
+        function deleteItem(id) {
+            if(confirm("Excluir item permanentemente?")) {
+                items = items.filter(i => i.id !== id);
+                save();
+                renderItems();
+                showToast("Item excluído.");
+            }
+        }
+
+        // --- SHOPPING CART LOGIC ---
+        
+        function toggleCartItem(id) {
+            if (shoppingCart.has(id)) {
+                shoppingCart.delete(id);
+            } else {
+                shoppingCart.set(id, 1);
+            }
+            renderItems();
+        }
+
+        function setCartQty(id, valStr) {
+            const val = parseFloat(valStr);
+            if (val >= 0) {
+                shoppingCart.set(id, safeMath(val));
+            } else {
+                shoppingCart.set(id, 0); 
+            }
+        }
+
+        function updateCartQtyBtn(id, change) {
+            const current = shoppingCart.get(id) || 1;
+            const newVal = safeMath(current + change);
+            if (newVal > 0) {
+                shoppingCart.set(id, newVal);
+                renderItems(); 
+            }
+        }
+
+        function finishShopping() {
+            if (shoppingCart.size === 0) {
+                showToast("Selecione itens primeiro.");
+                return;
+            }
+            
+            let count = 0;
+            shoppingCart.forEach((boughtQty, id) => {
+                const item = items.find(i => i.id === id);
+                if (item) {
+                    item.qty = safeMath(item.qty + boughtQty); // Agora SOMA ao estoque existente, já que pode não ser zero
+                    count++;
+                }
+            });
+            
+            shoppingCart.clear();
+            toggleShoppingMode();
+            save();
+            showToast(`${count} itens atualizados!`);
+        }
+
+        // --- UI FUNCTIONS ---
+
+        function openAddModal() {
+            document.getElementById('modal-title').innerText = "Novo Item";
+            document.getElementById('edit-id').value = "";
+            document.getElementById('item-name').value = "";
+            document.getElementById('item-qty').value = "1";
+            document.getElementById('item-min').value = "0";
+            document.getElementById('item-unit').value = "un";
+            document.getElementById('item-expiry').value = "";
+            
+            document.getElementById('item-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('item-name').focus(), 100);
+        }
+
+        function openEditModal(id) {
+            const item = items.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('modal-title').innerText = "Editar Item";
+            document.getElementById('edit-id').value = item.id;
+            document.getElementById('item-name').value = item.name;
+            document.getElementById('item-qty').value = item.qty;
+            document.getElementById('item-min').value = item.minQty || 0;
+            document.getElementById('item-unit').value = item.unit || "un";
+            document.getElementById('item-expiry').value = item.expiry || "";
+            document.getElementById('item-category').value = item.category;
+
+            document.getElementById('item-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('item-modal').classList.add('hidden');
+        }
+
+        function toggleShoppingMode() {
+            shoppingMode = !shoppingMode;
+            const body = document.getElementById('main-body');
+            const banner = document.getElementById('shopping-banner');
+            const addBtn = document.getElementById('add-btn');
+            const shopBtn = document.getElementById('shop-btn');
+            
+            if (shoppingMode) {
+                body.classList.add('shopping-mode-active');
+                banner.classList.remove('hidden');
+                addBtn.classList.add('hidden');
+                activeCategory = 'Todos'; 
+                shopBtn.classList.add('bg-orange-100', 'text-orange-600');
+                showToast("Modo Mercado: Faltas + Pouco Estoque");
+            } else {
+                body.classList.remove('shopping-mode-active');
+                banner.classList.add('hidden');
+                addBtn.classList.remove('hidden');
+                shopBtn.classList.remove('bg-orange-100', 'text-orange-600');
+                shoppingCart.clear(); 
+            }
+            renderCategories();
+            renderItems();
+        }
+
+        // --- RENDER ---
+        function renderItems() {
+            const list = document.getElementById('inventory-list');
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const today = new Date().toISOString().split('T')[0];
+            const warningStr = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+
+            let filtered = items.filter(i => i.name.toLowerCase().includes(search));
+
+            if (shoppingMode) {
+                // Filtra: Quantidade Zero OU (Mínimo definido E Quantidade <= Mínimo)
+                filtered = filtered.filter(i => i.qty === 0 || (i.minQty > 0 && i.qty <= i.minQty));
+            } else {
+                if (activeCategory === 'Faltando') filtered = filtered.filter(i => i.qty === 0 || (i.minQty > 0 && i.qty <= i.minQty));
+                else if (activeCategory !== 'Todos') filtered = filtered.filter(i => i.category === activeCategory);
+            }
+
+            filtered.sort((a, b) => {
+                if (shoppingMode) {
+                    const aInCart = shoppingCart.has(a.id);
+                    const bInCart = shoppingCart.has(b.id);
+                    if (aInCart && !bInCart) return -1; 
+                    if (!aInCart && bInCart) return 1;
+                }
+                
+                // Prioridade: Zero -> Pouco -> Vencido -> Normal
+                const aIsLow = a.minQty > 0 && a.qty <= a.minQty;
+                const bIsLow = b.minQty > 0 && b.qty <= b.minQty;
+
+                if (a.qty === 0 && b.qty !== 0) return -1;
+                if (a.qty !== 0 && b.qty === 0) return 1;
+                
+                if (aIsLow && !bIsLow) return -1;
+                if (!aIsLow && bIsLow) return 1;
+
+                if (a.expiry && a.qty > 0 && (!b.expiry || b.qty === 0)) {
+                     if (a.expiry < warningStr) return -1;
+                }
+                
+                return a.name.localeCompare(b.name);
+            });
+
+            // --- SHOPPING MODE RENDER ---
+            if (shoppingMode) {
+                 if (filtered.length === 0) {
+                     list.innerHTML = `<div class="text-center py-12 text-gray-400">Tudo em ordem!<br><span class="text-xs">Nada em falta ou acabando.</span></div>`;
+                     return;
+                 }
+                 
+                 const cartCount = shoppingCart.size;
+                 const buttonHtml = cartCount > 0 
+                    ? `<button onclick="finishShopping()" class="w-full bg-orange-600 text-white px-6 py-3 rounded-full font-bold shadow-lg hover:bg-orange-700 transition flex items-center justify-center gap-2 animate-bounce-short">
+                         <span>Concluir Compras (${cartCount})</span>
+                       </button>`
+                    : `<div class="text-xs text-orange-800 text-center py-2">Selecione o que colocar no carrinho</div>`;
+
+                 list.innerHTML = `
+                    <div class="mb-4 sticky top-[190px] z-10 px-2">
+                        ${buttonHtml}
+                    </div>
+                 ` + filtered.map(item => {
+                     const inCart = shoppingCart.has(item.id);
+                     const buyQty = shoppingCart.get(item.id) || 1;
+                     const unit = item.unit || 'un';
+                     const isZero = item.qty === 0;
+                     const isLow = !isZero && item.minQty > 0 && item.qty <= item.minQty;
+                     
+                     let statusBadge = "";
+                     if(isZero) statusBadge = `<span class="bg-red-100 text-red-700 text-[10px] px-1.5 py-0.5 rounded font-bold ml-2">FALTA</span>`;
+                     else if(isLow) statusBadge = `<span class="bg-yellow-100 text-yellow-700 text-[10px] px-1.5 py-0.5 rounded font-bold ml-2">POUCO</span>`;
+
+                     return `
+                     <div class="bg-white p-3 rounded-xl mb-3 border-2 ${inCart ? 'border-orange-400 bg-orange-50' : 'border-transparent shadow-sm'} transition-all animate-fade-in">
+                        <div class="flex items-center justify-between">
+                            <div onclick="toggleCartItem(${item.id})" class="flex items-center gap-3 cursor-pointer flex-1">
+                                <div class="w-6 h-6 rounded border-2 ${inCart ? 'bg-orange-500 border-orange-500' : 'border-gray-300'} flex items-center justify-center text-white transition-colors">
+                                    ${inCart ? '✓' : ''}
+                                </div>
+                                <div>
+                                    <div class="flex items-center">
+                                        <span class="font-bold text-lg block ${inCart ? 'text-gray-800' : 'text-gray-700'}">${item.name}</span>
+                                        ${statusBadge}
+                                    </div>
+                                    <span class="text-xs text-gray-500">Tem: ${item.qty} ${unit}</span>
+                                </div>
+                            </div>
+                            
+                            ${inCart ? `
+                            <div class="flex items-center bg-white rounded-lg border border-orange-200 shadow-sm ml-2">
+                                <button onclick="updateCartQtyBtn(${item.id}, -1)" class="w-8 h-8 flex items-center justify-center text-orange-600 font-bold active:bg-orange-100 rounded-l hover:bg-orange-50">-</button>
+                                
+                                <div class="w-16 h-8 border-l border-r border-orange-100">
+                                    <input 
+                                        type="number" 
+                                        value="${buyQty}" 
+                                        onchange="setCartQty(${item.id}, this.value)"
+                                        step="any"
+                                        class="w-full h-full text-center text-orange-700 font-bold outline-none bg-transparent"
+                                    >
+                                </div>
+
+                                <button onclick="updateCartQtyBtn(${item.id}, 1)" class="w-8 h-8 flex items-center justify-center text-orange-600 font-bold active:bg-orange-100 rounded-r hover:bg-orange-50">+</button>
+                            </div>
+                            ` : ''}
+                        </div>
+                     </div>
+                     `
+                 }).join('');
+                 return;
+            }
+
+            // --- STANDARD RENDER ---
+            if (filtered.length === 0) {
+                list.innerHTML = `<div class="text-center py-12 text-gray-400">Nenhum item encontrado.</div>`;
+                return;
+            }
+
+            list.innerHTML = filtered.map(item => {
+                const isZero = item.qty === 0;
+                const isLow = !isZero && item.minQty > 0 && item.qty <= item.minQty;
+                
+                let borderClass = 'border-gray-100';
+                let alertBadge = '';
+                const unit = item.unit || 'un';
+                
+                // Prioridades de visualização
+                if (isZero) {
+                    borderClass = 'border-red-100 bg-red-50';
+                    alertBadge = `<span class="bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded font-bold">FALTA</span>`;
+                } else if (isLow) {
+                    borderClass = 'border-yellow-200 bg-yellow-50';
+                    alertBadge = `<span class="bg-yellow-100 text-yellow-700 text-[10px] px-2 py-0.5 rounded font-bold">POUCO</span>`;
+                }
+                
+                // Validade sobrepõe visualmente se não for zero/pouco, ou adiciona badge extra
+                let expiryBadge = '';
+                if (item.expiry && item.qty > 0) {
+                    if (item.expiry < today) {
+                        expiryBadge = `<span class="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded font-bold ml-2">VENCEU</span>`;
+                        if(!isZero && !isLow) borderClass = 'border-red-200 bg-red-50/30';
+                    } else if (item.expiry < warningStr) {
+                        expiryBadge = `<span class="bg-yellow-100 text-yellow-700 text-[10px] px-2 py-0.5 rounded font-bold ml-2">VENCE LOGO</span>`;
+                        if(!isZero && !isLow) borderClass = 'border-yellow-200 bg-yellow-50/30';
+                    }
+                }
+
+                return `
+                <div class="bg-white p-4 rounded-xl mb-3 card-shadow border ${borderClass} flex items-center justify-between transition-all animate-fade-in relative group">
+                    
+                    <div class="flex-1 cursor-pointer" onclick="openEditModal(${item.id})">
+                        <div class="flex flex-wrap items-center gap-y-1 mb-1">
+                            <h3 class="font-bold text-gray-800 text-lg mr-2 ${isZero ? 'text-red-700' : ''}">${item.name}</h3>
+                            ${alertBadge}
+                            ${expiryBadge}
+                            <svg class="w-3 h-3 text-gray-300 ml-1 opacity-0 group-hover:opacity-100 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        </div>
+                        <div class="text-xs text-gray-400 flex flex-wrap gap-2 items-center">
+                            <span class="bg-gray-100 px-2 py-0.5 rounded">${item.category}</span>
+                            ${item.minQty > 0 ? `<span class="text-gray-300">Min: ${item.minQty}</span>` : ''}
+                            ${item.expiry ? `<span>Val: ${item.expiry.split('-').reverse().join('/')}</span>` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 ml-2">
+                        <button onclick="updateQuantity(${item.id}, -1)" class="w-9 h-9 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 active:bg-gray-300 transition-colors">
+                            <svg width="14" height="2" viewBox="0 0 14 2" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1h12"/></svg>
+                        </button>
+                        
+                        <div class="flex flex-col items-center justify-center min-w-[2.5rem]">
+                            <span class="font-bold text-lg leading-none ${isZero ? 'text-red-600' : (isLow ? 'text-yellow-600' : 'text-emerald-700')}">${item.qty}</span>
+                            <span class="text-[10px] text-gray-400 font-medium leading-none mt-0.5">${unit}</span>
+                        </div>
+                        
+                        <button onclick="updateQuantity(${item.id}, 1)" class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center hover:bg-emerald-200 active:bg-emerald-300 transition-colors">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 1v12M1 7h12"/></svg>
+                        </button>
+
+                        <button onclick="deleteItem(${item.id})" class="ml-1 text-gray-300 hover:text-red-400 p-2 rounded-full hover:bg-red-50 transition">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        // --- EXPORT/IMPORT/CATS ---
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({items, categories}));
+            const anchor = document.createElement('a');
+            anchor.setAttribute("href", dataStr);
+            anchor.setAttribute("download", "backup_despensa.json");
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+        }
+
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.items) items = data.items;
+                    if (data.categories) categories = data.categories;
+                    save();
+                    init();
+                    showToast("Restaurado!");
+                    toggleSettings();
+                } catch(err) {
+                    showToast("Erro no arquivo.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function addCustomCategory() {
+            const val = document.getElementById('new-cat-input').value.trim();
+            if (val && !categories.includes(val)) {
+                categories.push(val);
+                save();
+                renderCategories();
+                renderCategorySelect();
+                document.getElementById('new-cat-input').value = '';
+                showToast("Categoria criada!");
+            }
+        }
+
+        function renderCategories() {
+            const container = document.getElementById('category-filters');
+            if (shoppingMode) {
+                 container.innerHTML = `<span class="text-xs text-orange-600 font-bold px-2 py-1.5 uppercase tracking-wide">Mostrando Apenas Faltas</span>`;
+                 return;
+            }
+            const navCats = ['Todos', ...categories, 'Faltando'];
+            container.innerHTML = navCats.map(c => `
+                <button onclick="activeCategory='${c}'; renderCategories(); renderItems()" 
+                class="px-4 py-1.5 rounded-full text-sm font-medium transition whitespace-nowrap border ${activeCategory === c ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}">
+                ${c}</button>
+            `).join('');
+        }
+
+        function renderCategorySelect() {
+            document.getElementById('item-category').innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
+        function updateSuggestions() {
+            const uniqueNames = [...new Set(items.map(i => i.name))];
+            document.getElementById('suggestions').innerHTML = uniqueNames.map(n => `<option value="${n}">`).join('');
+        }
+
+        function updateStats() {
+            const missing = items.filter(i => i.qty === 0).length;
+            const low = items.filter(i => i.qty > 0 && i.minQty > 0 && i.qty <= i.minQty).length;
+            document.getElementById('stats-display').innerText = `${items.length} itens • ${missing} faltas • ${low} pouco`;
+        }
+
+        function toggleSettings() {
+            document.getElementById('settings-panel').classList.toggle('hidden');
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast'); t.innerText = msg; t.classList.remove('opacity-0');
+            setTimeout(() => t.classList.add('opacity-0'), 3000);
+        }
+        
+        document.getElementById('item-modal').addEventListener('click', e => { if(e.target.id === 'item-modal') closeModal(); });
+
+        init();
+    </script>
+</body>
+</html>
